@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { authenticateToken, optionalAuth } = require('./middleware/auth');
 
 const pagesRouter = require('./routes/pages');
 const seedRouter = require('./routes/seed');
@@ -19,21 +20,82 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// Routes
-app.use('/api/pages', pagesRouter);
-app.use('/api/seed', seedRouter);
-app.use('/api/save', saveRouter);
-app.use('/api/prompts', promptsRouter);
-app.use('/api/auth', authRouter);
-app.use('/api/projects', projectsRouter);
+// Request logging middleware
+app.use((req, res, next) => {
+    const timestamp = new Date().toISOString();
+    console.log(`\n📨 [${timestamp}] ${req.method} ${req.url}`);
+    if (req.method !== 'GET' && req.body && Object.keys(req.body).length > 0) {
+        // Don't log passwords
+        const logBody = { ...req.body };
+        if (logBody.password) logBody.password = '***';
+        console.log('   Body:', JSON.stringify(logBody).substring(0, 200));
+    }
+    next();
+});
 
-// Health check
+// ==========================================
+// Public Routes (no authentication required)
+// ==========================================
+app.use('/api/auth', authRouter);
+
+// Health check - public
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ==========================================
+// Protected Routes (authentication required)
+// ==========================================
+
+// Apply authentication middleware to protected routes
+app.use('/api/pages', authenticateToken, pagesRouter);
+app.use('/api/seed', authenticateToken, seedRouter);
+app.use('/api/save', authenticateToken, saveRouter);
+app.use('/api/prompts', authenticateToken, promptsRouter);
+app.use('/api/projects', authenticateToken, projectsRouter);
+
+// ==========================================
+// Error Handling
+// ==========================================
+
+// 404 handler
+app.use((req, res, next) => {
+    res.status(404).json({
+        success: false,
+        message: `Route ${req.method} ${req.url} not found`
+    });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+
+    // Handle JWT errors
+    if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+            success: false,
+            message: 'Invalid token',
+            code: 'TOKEN_INVALID'
+        });
+    }
+
+    if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+            success: false,
+            message: 'Token expired',
+            code: 'TOKEN_EXPIRED'
+        });
+    }
+
+    res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+    });
 });
 
 // Start server
 app.listen(PORT, () => {
     console.log(`🚀 Backend server running on http://localhost:${PORT}`);
     console.log(`📁 Project root: ${process.env.PROJECT_ROOT || 'Not set'}`);
+    console.log(`🔐 JWT authentication enabled`);
 });
