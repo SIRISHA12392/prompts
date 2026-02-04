@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken, getStoredUser, verifyToken, logout, apiRequest, clearAuthData } from '@/lib/api';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -283,6 +284,9 @@ export default function HomePage() {
                                 </svg>
                                 <span className="hidden sm:inline">Logout</span>
                             </button>
+
+                            {/* Theme Toggle */}
+                            <ThemeToggle />
                         </div>
                     </div>
                 </header>
@@ -364,8 +368,8 @@ export default function HomePage() {
                                                     onClick={goBack}
                                                     disabled={browseHistory.length === 0}
                                                     className={`px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm transition-colors flex-shrink-0 flex items-center gap-1.5 ${browseHistory.length > 0
-                                                            ? 'bg-white/5 hover:bg-white/10 text-gray-300'
-                                                            : 'bg-white/5 text-gray-600 cursor-not-allowed'
+                                                        ? 'bg-white/5 hover:bg-white/10 text-gray-300'
+                                                        : 'bg-white/5 text-gray-600 cursor-not-allowed'
                                                         }`}
                                                 >
                                                     <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
