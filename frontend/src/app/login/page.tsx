@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { login, setAuthData } from '@/lib/api';
-import ThemeToggle from '@/components/ThemeToggle';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // Pre-defined particle positions to avoid hydration mismatch
 const PARTICLES = [
@@ -71,11 +71,6 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4">
-            {/* Theme Toggle - Top Right */}
-            <div className="absolute top-4 right-4 z-20">
-                <ThemeToggle />
-            </div>
-
             {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-48 h-48 sm:w-64 md:w-80 sm:h-64 md:h-80 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
@@ -103,6 +98,10 @@ export default function LoginPage() {
 
             {/* Login Card */}
             <div className="relative z-10 w-full max-w-md px-0 sm:px-4">
+                {/* Theme Toggle - Top Right */}
+                <div className="absolute -top-2 right-0 sm:right-4 z-20">
+                    <ThemeToggle />
+                </div>
                 <div className="glass-panel rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-2xl animate-pulse-glow">
                     {/* Logo/Header */}
                     <div className="text-center mb-6 sm:mb-8">

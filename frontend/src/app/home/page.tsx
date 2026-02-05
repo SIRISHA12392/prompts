@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken, getStoredUser, verifyToken, logout, apiRequest, clearAuthData } from '@/lib/api';
-import ThemeToggle from '@/components/ThemeToggle';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
