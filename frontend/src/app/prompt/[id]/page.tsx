@@ -434,30 +434,46 @@ export default function PromptDetailPage() {
     }
 
     // Apply focused filter (FRONTEND/BACKEND/DATABASE)
+    // Extracts content from ### Frontend/Backend/Database to the next ###
     const applyFocusedFilter = (content: string): string => {
         if (!focusedFilter || !content) return content
         const contentLines = content.split('\n')
         const filteredLines: string[] = []
-        let currentBlock: 'FRONTEND' | 'BACKEND' | 'DATABASE' | null = null
-        let includeBlock = false
+        let insideMatchingBlock = false
 
         for (const line of contentLines) {
             const lowerLine = line.trim().toLowerCase()
-            if (lowerLine.startsWith('### frontend')) {
-                currentBlock = 'FRONTEND'
-                includeBlock = currentBlock === focusedFilter
-            } else if (lowerLine.startsWith('### backend')) {
-                currentBlock = 'BACKEND'
-                includeBlock = currentBlock === focusedFilter
-            } else if (lowerLine.startsWith('### database')) {
-                currentBlock = 'DATABASE'
-                includeBlock = currentBlock === focusedFilter
-            } else if (lowerLine.startsWith('###')) {
-                currentBlock = null
-                includeBlock = false
+
+            // Only treat lines starting with exactly "### " (3 hashes + space)
+            // as section boundaries. Lines with "#### " (4+ hashes) are
+            // sub-headings within a section and should NOT break the block.
+            const isH3Heading = lowerLine.startsWith('### ') && !lowerLine.startsWith('#### ')
+
+            if (isH3Heading) {
+                // Determine which block this heading starts
+                if (lowerLine.startsWith('### frontend')) {
+                    insideMatchingBlock = focusedFilter === 'FRONTEND'
+                } else if (lowerLine.startsWith('### backend')) {
+                    insideMatchingBlock = focusedFilter === 'BACKEND'
+                } else if (lowerLine.startsWith('### database')) {
+                    insideMatchingBlock = focusedFilter === 'DATABASE'
+                } else {
+                    // Any other ### heading ends the current block
+                    insideMatchingBlock = false
+                }
             }
-            if (includeBlock) filteredLines.push(line)
+
+            // Also stop at section-level delimiters (=== lines) to avoid
+            // bleeding into other major sections
+            if (lowerLine.startsWith('===') && insideMatchingBlock && filteredLines.length > 0) {
+                insideMatchingBlock = false
+            }
+
+            if (insideMatchingBlock) {
+                filteredLines.push(line)
+            }
         }
+
         return filteredLines.join('\n')
     }
 
@@ -493,27 +509,12 @@ export default function PromptDetailPage() {
     const renderFormattedContent = (content: string) => {
         if (!content) return <p className="no-content-text">No content found for this section.</p>
 
-        let currentBlock: 'FRONTEND' | 'BACKEND' | 'DATABASE' | null = null
-
         return content.split('\n').map((line, i) => {
             const trimmed = line.trim()
-            const lowerLine = trimmed.toLowerCase()
 
-            // Track blocks
-            if (lowerLine.startsWith('### frontend')) currentBlock = 'FRONTEND'
-            else if (lowerLine.startsWith('### backend')) currentBlock = 'BACKEND'
-            else if (lowerLine.startsWith('### database')) currentBlock = 'DATABASE'
-            else if (lowerLine.startsWith('###')) currentBlock = null
-
-            // Determine if this line should be highlighted or dimmed
+            // When focusedFilter is active, content is already extracted
+            // so every line belongs to the matched section — no dimming needed
             let lineClass = 'content-line'
-            if (focusedFilter) {
-                if (currentBlock === focusedFilter) {
-                    lineClass += ` highlight-active highlight-${focusedFilter.toLowerCase()}`
-                } else {
-                    lineClass += ' highlight-dimmed'
-                }
-            }
 
             // Style based on content
             if (trimmed.startsWith('SECTION ') || trimmed.startsWith('===')) {
@@ -521,6 +522,9 @@ export default function PromptDetailPage() {
             }
             if (trimmed.startsWith('### ')) {
                 return <span key={i} className={`${lineClass} content-h3`}>{line}{'\n'}</span>
+            }
+            if (trimmed.startsWith('#### ')) {
+                return <span key={i} className={`${lineClass} content-h4`}>{line}{'\n'}</span>
             }
             if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
                 return <span key={i} className={`${lineClass} content-bold`}>{line}{'\n'}</span>
@@ -749,7 +753,7 @@ export default function PromptDetailPage() {
                                     id={`editor-${page.id}`}
                                     className="editor-textarea single"
                                     defaultValue={displayContent}
-                                    readOnly={true}
+                                    readOnly={!!focusedFilter}
                                 />
                             )}
                         </div>

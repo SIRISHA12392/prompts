@@ -1058,6 +1058,8 @@ export default function Home() {
     const [generatingFile, setGeneratingFile] = useState<string | null>(null)
     const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
     const [openTabs, setOpenTabs] = useState<string[]>([])
+    const [syncStatus, setSyncStatus] = useState<{ inSync: boolean; message: string; totalChanges: number; details?: { newFiles: string[]; removedFiles: string[]; modifiedFiles: string[] } } | null>(null)
+    const [syncBannerDismissed, setSyncBannerDismissed] = useState(false)
 
     useEffect(() => {
         // Check auth before fetching
@@ -1067,6 +1069,14 @@ export default function Home() {
             return
         }
         fetchData()
+        checkSyncStatus()
+
+        // Poll sync status every 30 seconds
+        const syncInterval = setInterval(() => {
+            checkSyncStatus()
+        }, 30000)
+
+        return () => clearInterval(syncInterval)
     }, [])
 
     const fetchData = async () => {
@@ -1095,6 +1105,22 @@ export default function Home() {
         }
     }
 
+    const checkSyncStatus = async () => {
+        try {
+            const result = await apiRequest<{ success: boolean; inSync: boolean; message: string; totalChanges: number; details: { newFiles: string[]; removedFiles: string[]; modifiedFiles: string[] } }>('/api/seed/check-sync')
+            if (result.success && result.data) {
+                setSyncStatus(result.data)
+                // If back in sync, auto-dismiss banner
+                if (result.data.inSync) {
+                    setSyncBannerDismissed(false)
+                }
+            }
+        } catch (err) {
+            // Silently fail - don't bother user with sync check errors
+            console.debug('Sync check failed:', err)
+        }
+    }
+
     const handleSeed = async () => {
         setSeeding(true)
         setError(null)
@@ -1109,6 +1135,9 @@ export default function Home() {
 
             if (result.success && result.data?.success) {
                 await fetchData()
+                // Re-check sync status after seeding
+                await checkSyncStatus()
+                setSyncBannerDismissed(false)
             } else {
                 throw new Error(result.error || result.data?.error || 'Seeding failed')
             }
@@ -1214,35 +1243,76 @@ export default function Home() {
     }
 
     return (
-        <div className="min-h-screen text-slate-800 dark:text-slate-200 p-2 sm:p-3 md:p-4 font-sans" style={{ maxWidth: '1440px', margin: '0 auto' }}>
+        <div className="min-h-screen text-slate-800 dark:text-slate-200 font-sans ide-page-wrapper">
+            {/* Decorative Background Hexagons */}
+            <div className="ide-hex-decorations">
+                <svg className="ide-hex-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M100 10L178.66 55V145L100 190L21.34 145V55L100 10Z" stroke="currentColor" strokeWidth="1" opacity="0.08" />
+                    <path d="M100 40L152.66 70V130L100 160L47.34 130V70L100 40Z" stroke="currentColor" strokeWidth="1" opacity="0.05" />
+                    <path d="M100 70L126.66 85V115L100 130L73.34 115V85L100 70Z" stroke="currentColor" strokeWidth="1" opacity="0.03" />
+                </svg>
+            </div>
+
             {/* Compact Header */}
-            <header className="mb-2 sm:mb-3 flex items-center justify-between gap-3 px-2">
+            <header className="ide-main-header">
                 <div className="flex items-center gap-3 min-w-0">
                     <button
                         onClick={() => router.push('/home')}
-                        className="p-1.5 bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg transition-all flex-shrink-0"
+                        className="ide-back-btn"
                         title="Back to Projects"
                     >
-                        <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
-                    <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent truncate">
+                    <h1 className="ide-main-title">
                         Agentic Prompt DB
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <button
                         onClick={handleSeed}
                         disabled={seeding}
-                        className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-all flex items-center gap-1.5 ${seeding ? 'bg-slate-700 cursor-wait text-slate-400' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 active:scale-95'}`}
+                        className={`ide-sync-btn ${seeding ? 'syncing' : ''}`}
                     >
-                        {seeding ? 'Syncing...' : '🔄 Sync'}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        {seeding ? 'Syncing...' : 'Sync'}
                     </button>
                     <ThemeToggle />
                 </div>
             </header>
+
+            {/* Sync Status Banner */}
+            {syncStatus && !syncStatus.inSync && !syncBannerDismissed && (
+                <div className="mx-2 mb-2 bg-amber-500/10 border border-amber-500/25 rounded-lg p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 animate-in">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-base sm:text-lg flex-shrink-0">📢</span>
+                        <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-medium text-amber-700 dark:text-amber-300 truncate">
+                                {syncStatus.message}
+                            </p>
+                            <p className="text-[10px] sm:text-xs text-amber-600/70 dark:text-amber-400/60 mt-0.5">
+                                Click <strong>🔄 Sync</strong> to update the database
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                        <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                            {syncStatus.totalChanges} change{syncStatus.totalChanges !== 1 ? 's' : ''}
+                        </span>
+                        <button
+                            onClick={() => setSyncBannerDismissed(true)}
+                            className="w-6 h-6 flex items-center justify-center rounded text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-colors text-sm"
+                            title="Dismiss"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Error State */}
             {error && (
@@ -1276,233 +1346,268 @@ export default function Home() {
 
             {/* VS Code IDE Layout */}
             {filteredFolders.length > 0 && (
-                <div className="ide-layout">
-                    {/* LEFT SIDEBAR - Tree Explorer */}
-                    <div className="ide-sidebar">
-                        {/* Search in sidebar */}
-                        <div className="ide-sidebar-search">
-                            <input
-                                type="text"
-                                placeholder="Search files..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                <>
+                    <div className="ide-layout">
+                        {/* LEFT SIDEBAR - Tree Explorer */}
+                        <div className="ide-sidebar">
+                            {/* Search in sidebar */}
+                            <div className="ide-sidebar-search">
+                                <svg className="ide-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="M21 21l-4.35-4.35" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    placeholder="Search files..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <TreeViewComponent
+                                tree={tree}
+                                expandedNodes={expandedNodes}
+                                onToggleNode={toggleNode}
+                                onExpandAll={expandAllNodes}
+                                onCollapseAll={collapseAllNodes}
+                                onNavigateToFile={selectFile}
+                                onGenerate={handleGenerate}
+                                generatingFile={generatingFile}
+                                searchQuery={searchQuery}
+                                selectedPageId={selectedPageId}
                             />
                         </div>
-                        <TreeViewComponent
-                            tree={tree}
-                            expandedNodes={expandedNodes}
-                            onToggleNode={toggleNode}
-                            onExpandAll={expandAllNodes}
-                            onCollapseAll={collapseAllNodes}
-                            onNavigateToFile={selectFile}
-                            onGenerate={handleGenerate}
-                            generatingFile={generatingFile}
-                            searchQuery={searchQuery}
-                            selectedPageId={selectedPageId}
-                        />
-                    </div>
 
-                    {/* RIGHT - Editor Panel */}
-                    <div className="ide-editor">
-                        {/* Tab Bar */}
-                        <div className="ide-tab-bar">
-                            {openTabs.map(tabId => {
-                                const tabPage = pages.find(p => p.id === tabId)
-                                if (!tabPage) return null
-                                return (
-                                    <button
-                                        key={tabId}
-                                        className={`ide-tab ${selectedPageId === tabId ? 'active' : ''}`}
-                                        onClick={() => setSelectedPageId(tabId)}
-                                    >
-                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                            <path d="M3 1h7l3 3v10.5a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-13A.5.5 0 013 1z" fill={getFileColor(tabPage.filePath)} opacity="0.85" />
-                                        </svg>
-                                        {tabPage.componentName}
+                        {/* RIGHT - Editor Panel */}
+                        <div className="ide-editor">
+                            {/* Tab Bar */}
+                            <div className="ide-tab-bar">
+                                {openTabs.map(tabId => {
+                                    const tabPage = pages.find(p => p.id === tabId)
+                                    if (!tabPage) return null
+                                    return (
                                         <button
-                                            className="ide-tab-close"
-                                            onClick={(e) => { e.stopPropagation(); closeTab(tabId) }}
-                                            title="Close"
-                                        >×</button>
-                                    </button>
-                                )
-                            })}
-                        </div>
-
-                        {/* Breadcrumb */}
-                        {selectedPage && (
-                            <div className="ide-breadcrumb">
-                                {selectedPage.filePath.split('/').map((part, i, arr) => (
-                                    <span key={i}>
-                                        {i > 0 && <span className="separator"> › </span>}
-                                        <span>{part}</span>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Editor Content */}
-                        {selectedPage ? (
-                            <div className="ide-content">
-                                {/* File Header */}
-                                <div className="file-detail-header">
-                                    <div className="file-icon">
-                                        <svg viewBox="0 0 16 16" fill="none">
-                                            <path d="M3 1h7l3 3v10.5a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-13A.5.5 0 013 1z" fill={getFileColor(selectedPage.filePath)} opacity="0.85" />
-                                            <path d="M10 1l3 3h-2.5a.5.5 0 01-.5-.5V1z" fill={getFileColor(selectedPage.filePath)} opacity="0.5" />
-                                        </svg>
-                                    </div>
-                                    <div className="file-info">
-                                        <h2>{selectedPage.componentName}</h2>
-                                        <p>{selectedPage.filePath}</p>
-                                    </div>
-                                    <div className="file-detail-stats">
-                                        <div className="file-detail-stat">
-                                            <div className="value" style={{ color: '#61dafb' }}>{selectedPage.totalLines}</div>
-                                            <div className="label">Lines</div>
-                                        </div>
-                                        <div className="file-detail-stat">
-                                            <div className="value" style={{ color: '#73c991' }}>{selectedPage.sections.length}</div>
-                                            <div className="label">Sections</div>
-                                        </div>
-                                        <div className="file-detail-stat">
-                                            <div className="value" style={{ color: '#e2b93d' }}>{selectedPage.sections.reduce((s, sec) => s + sec.prompts.length, 0)}</div>
-                                            <div className="label">Prompts</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Purpose */}
-                                {selectedPage.purpose && (
-                                    <p style={{ fontSize: '13px', color: '#999', marginBottom: '20px', lineHeight: 1.5 }}>
-                                        {selectedPage.purpose}
-                                    </p>
-                                )}
-
-                                {/* Generate button for files without prompts */}
-                                {!selectedPage.promptFilePath && selectedPage.sections.length === 0 && (
-                                    <div style={{ padding: '16px', background: '#2d2d2d', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
-                                        <p style={{ fontSize: '13px', color: '#999', marginBottom: '12px' }}>No prompts found for this file.</p>
-                                        <button
-                                            onClick={() => handleGenerate(selectedPage.filePath)}
-                                            disabled={generatingFile === selectedPage.filePath}
-                                            className={`tree-gen-btn ${generatingFile === selectedPage.filePath ? 'busy' : ''}`}
-                                            style={{ fontSize: '13px', padding: '6px 16px' }}
+                                            key={tabId}
+                                            className={`ide-tab ${selectedPageId === tabId ? 'active' : ''}`}
+                                            onClick={() => setSelectedPageId(tabId)}
                                         >
-                                            {generatingFile === selectedPage.filePath ? '⏳ Generating...' : '⚡ Generate Prompts'}
+                                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                                <path d="M3 1h7l3 3v10.5a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-13A.5.5 0 013 1z" fill={getFileColor(tabPage.filePath)} opacity="0.85" />
+                                            </svg>
+                                            {tabPage.componentName}
+                                            <button
+                                                className="ide-tab-close"
+                                                onClick={(e) => { e.stopPropagation(); closeTab(tabId) }}
+                                                title="Close"
+                                            >×</button>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+
+                            {/* Breadcrumb */}
+                            {selectedPage && (
+                                <div className="ide-breadcrumb">
+                                    {selectedPage.filePath.split('/').map((part, i, arr) => (
+                                        <span key={i}>
+                                            {i > 0 && <span className="separator"> › </span>}
+                                            <span>{part}</span>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Editor Content */}
+                            {selectedPage ? (
+                                <div className="ide-content">
+                                    {/* File Header */}
+                                    <div className="file-detail-header">
+                                        <div className="file-icon">
+                                            <svg viewBox="0 0 16 16" fill="none">
+                                                <path d="M3 1h7l3 3v10.5a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-13A.5.5 0 013 1z" fill={getFileColor(selectedPage.filePath)} opacity="0.85" />
+                                                <path d="M10 1l3 3h-2.5a.5.5 0 01-.5-.5V1z" fill={getFileColor(selectedPage.filePath)} opacity="0.5" />
+                                            </svg>
+                                        </div>
+                                        <div className="file-info">
+                                            <h2>{selectedPage.componentName}</h2>
+                                            <p>{selectedPage.filePath}</p>
+                                        </div>
+                                        <div className="file-detail-stats">
+                                            <div className="file-detail-stat">
+                                                <div className="value" style={{ color: '#61dafb' }}>{selectedPage.totalLines}</div>
+                                                <div className="label">Lines</div>
+                                            </div>
+                                            <div className="file-detail-stat">
+                                                <div className="value" style={{ color: '#73c991' }}>{selectedPage.sections.length}</div>
+                                                <div className="label">Sections</div>
+                                            </div>
+                                            <div className="file-detail-stat">
+                                                <div className="value" style={{ color: '#e2b93d' }}>{selectedPage.sections.reduce((s, sec) => s + sec.prompts.length, 0)}</div>
+                                                <div className="label">Prompts</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Purpose */}
+                                    {selectedPage.purpose && (
+                                        <p style={{ fontSize: '13px', color: '#999', marginBottom: '20px', lineHeight: 1.5 }}>
+                                            {selectedPage.purpose}
+                                        </p>
+                                    )}
+
+                                    {/* Generate button for files without prompts */}
+                                    {!selectedPage.promptFilePath && selectedPage.sections.length === 0 && (
+                                        <div style={{ padding: '16px', background: '#2d2d2d', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
+                                            <p style={{ fontSize: '13px', color: '#999', marginBottom: '12px' }}>No prompts found for this file.</p>
+                                            <button
+                                                onClick={() => handleGenerate(selectedPage.filePath)}
+                                                disabled={generatingFile === selectedPage.filePath}
+                                                className={`tree-gen-btn ${generatingFile === selectedPage.filePath ? 'busy' : ''}`}
+                                                style={{ fontSize: '13px', padding: '6px 16px' }}
+                                            >
+                                                {generatingFile === selectedPage.filePath ? '⏳ Generating...' : '⚡ Generate Prompts'}
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Sections */}
+                                    {selectedPage.sections.length > 0 && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            {(() => {
+                                                const nlpSections = selectedPage.sections.filter(s =>
+                                                    s.name.toUpperCase().includes('NLP') ||
+                                                    s.name.toUpperCase().includes('USER-DEFINED') ||
+                                                    s.name.toUpperCase().includes('USER DEFINED')
+                                                )
+                                                const devSections = selectedPage.sections.filter(s =>
+                                                    s.name.toUpperCase().includes('DEVELOPER') ||
+                                                    s.name.toUpperCase().includes('DEV ') ||
+                                                    s.name.toUpperCase().includes('TECHNICAL')
+                                                )
+                                                const otherSections = selectedPage.sections.filter(s =>
+                                                    !nlpSections.includes(s) && !devSections.includes(s)
+                                                )
+
+                                                const renderSectionGroup = (title: string, emoji: string, accent: string, sections: Section[]) => {
+                                                    if (sections.length === 0) return null
+                                                    return (
+                                                        <div style={{ border: `1px solid ${accent}33`, borderRadius: '8px', overflow: 'hidden' }}>
+                                                            <div style={{ padding: '12px 16px', background: `${accent}15`, borderBottom: `1px solid ${accent}22`, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                <span style={{ fontSize: '18px' }}>{emoji}</span>
+                                                                <span style={{ fontSize: '14px', fontWeight: 600, color: accent }}>{title}</span>
+                                                                <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#888' }}>{sections.reduce((s, sec) => s + sec.prompts.length, 0)} prompts</span>
+                                                            </div>
+                                                            <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                {sections.map(section => (
+                                                                    <div key={section.id} style={{ background: '#1a1a1a', borderRadius: '6px', border: '1px solid #333', overflow: 'hidden' }}>
+                                                                        <div style={{ padding: '8px 12px', fontSize: '12px', color: accent, fontWeight: 600, borderBottom: section.prompts.length > 0 ? '1px solid #333' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                            <span>{section.name}</span>
+                                                                            <span style={{ fontSize: '11px', color: '#666', fontFamily: 'monospace' }}>L{section.startLine}-{section.endLine}</span>
+                                                                        </div>
+                                                                        {section.prompts.map(prompt => (
+                                                                            <div key={prompt.id} style={{ padding: '8px 12px', borderBottom: '1px solid #2a2a2a', fontSize: '13px' }} className="group">
+                                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                                                                                    <div style={{ flex: 1 }}>
+                                                                                        <span style={{ fontSize: '10px', color: '#555', fontFamily: 'monospace' }}>Line {prompt.lineNumber}</span>
+                                                                                        <div style={{ color: '#ccc', fontFamily: 'monospace', lineHeight: 1.5, marginTop: '2px', wordBreak: 'break-word' }}>{prompt.template}</div>
+                                                                                    </div>
+                                                                                    <CopyButton text={prompt.template} />
+                                                                                </div>
+                                                                                {prompt.example && (
+                                                                                    <div style={{ marginTop: '6px', paddingLeft: '12px', borderLeft: `2px solid ${accent}44`, fontSize: '12px', color: '#888' }}>
+                                                                                        <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Example: </span>
+                                                                                        {prompt.example}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                }
+
+                                                return (
+                                                    <>
+                                                        {renderSectionGroup('NLP Prompts', '💬', '#10b981', nlpSections)}
+                                                        {renderSectionGroup('Developer Prompts', '⚙️', '#a78bfa', devSections)}
+                                                        {renderSectionGroup('Other Sections', '📋', '#64748b', otherSections)}
+                                                    </>
+                                                )
+                                            })()}
+                                        </div>
+                                    )}
+
+                                    {/* Navigate to full detail page */}
+                                    <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #3c3c3c', textAlign: 'center' }}>
+                                        <button
+                                            onClick={() => router.push(`/prompt/${selectedPage.id}`)}
+                                            style={{
+                                                padding: '8px 24px', fontSize: '13px', fontWeight: 600,
+                                                background: '#007acc', color: '#fff', border: 'none',
+                                                borderRadius: '6px', cursor: 'pointer'
+                                            }}
+                                        >
+                                            Open Full Detail View →
                                         </button>
                                     </div>
-                                )}
-
-                                {/* Sections */}
-                                {selectedPage.sections.length > 0 && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        {(() => {
-                                            const nlpSections = selectedPage.sections.filter(s =>
-                                                s.name.toUpperCase().includes('NLP') ||
-                                                s.name.toUpperCase().includes('USER-DEFINED') ||
-                                                s.name.toUpperCase().includes('USER DEFINED')
-                                            )
-                                            const devSections = selectedPage.sections.filter(s =>
-                                                s.name.toUpperCase().includes('DEVELOPER') ||
-                                                s.name.toUpperCase().includes('DEV ') ||
-                                                s.name.toUpperCase().includes('TECHNICAL')
-                                            )
-                                            const otherSections = selectedPage.sections.filter(s =>
-                                                !nlpSections.includes(s) && !devSections.includes(s)
-                                            )
-
-                                            const renderSectionGroup = (title: string, emoji: string, accent: string, sections: Section[]) => {
-                                                if (sections.length === 0) return null
-                                                return (
-                                                    <div style={{ border: `1px solid ${accent}33`, borderRadius: '8px', overflow: 'hidden' }}>
-                                                        <div style={{ padding: '12px 16px', background: `${accent}15`, borderBottom: `1px solid ${accent}22`, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                            <span style={{ fontSize: '18px' }}>{emoji}</span>
-                                                            <span style={{ fontSize: '14px', fontWeight: 600, color: accent }}>{title}</span>
-                                                            <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#888' }}>{sections.reduce((s, sec) => s + sec.prompts.length, 0)} prompts</span>
-                                                        </div>
-                                                        <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                            {sections.map(section => (
-                                                                <div key={section.id} style={{ background: '#1a1a1a', borderRadius: '6px', border: '1px solid #333', overflow: 'hidden' }}>
-                                                                    <div style={{ padding: '8px 12px', fontSize: '12px', color: accent, fontWeight: 600, borderBottom: section.prompts.length > 0 ? '1px solid #333' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                                        <span>{section.name}</span>
-                                                                        <span style={{ fontSize: '11px', color: '#666', fontFamily: 'monospace' }}>L{section.startLine}-{section.endLine}</span>
-                                                                    </div>
-                                                                    {section.prompts.map(prompt => (
-                                                                        <div key={prompt.id} style={{ padding: '8px 12px', borderBottom: '1px solid #2a2a2a', fontSize: '13px' }} className="group">
-                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                                                                                <div style={{ flex: 1 }}>
-                                                                                    <span style={{ fontSize: '10px', color: '#555', fontFamily: 'monospace' }}>Line {prompt.lineNumber}</span>
-                                                                                    <div style={{ color: '#ccc', fontFamily: 'monospace', lineHeight: 1.5, marginTop: '2px', wordBreak: 'break-word' }}>{prompt.template}</div>
-                                                                                </div>
-                                                                                <CopyButton text={prompt.template} />
-                                                                            </div>
-                                                                            {prompt.example && (
-                                                                                <div style={{ marginTop: '6px', paddingLeft: '12px', borderLeft: `2px solid ${accent}44`, fontSize: '12px', color: '#888' }}>
-                                                                                    <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Example: </span>
-                                                                                    {prompt.example}
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )
-                                            }
-
-                                            return (
-                                                <>
-                                                    {renderSectionGroup('NLP Prompts', '💬', '#10b981', nlpSections)}
-                                                    {renderSectionGroup('Developer Prompts', '⚙️', '#a78bfa', devSections)}
-                                                    {renderSectionGroup('Other Sections', '📋', '#64748b', otherSections)}
-                                                </>
-                                            )
-                                        })()}
-                                    </div>
-                                )}
-
-                                {/* Navigate to full detail page */}
-                                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #3c3c3c', textAlign: 'center' }}>
-                                    <button
-                                        onClick={() => router.push(`/prompt/${selectedPage.id}`)}
-                                        style={{
-                                            padding: '8px 24px', fontSize: '13px', fontWeight: 600,
-                                            background: '#007acc', color: '#fff', border: 'none',
-                                            borderRadius: '6px', cursor: 'pointer'
-                                        }}
-                                    >
-                                        Open Full Detail View →
-                                    </button>
                                 </div>
-                            </div>
-                        ) : (
-                            /* Welcome Screen */
-                            <div className="ide-welcome">
-                                <div className="ide-welcome-icon">📂</div>
-                                <h2>Agentic Prompt DB</h2>
-                                <p>Select a file from the explorer to view its prompts and sections.</p>
-                                <div style={{ marginTop: '24px', display: 'flex', gap: '16px', fontSize: '12px', color: '#888' }}>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#61dafb' }}>{Object.keys(groupedPages).length}</div>
-                                        <div>Folders</div>
+                            ) : (
+                                /* Welcome Screen */
+                                <div className="ide-welcome">
+                                    <div className="ide-welcome-folder-wrapper">
+                                        <div className="ide-welcome-folder-bg"></div>
+                                        <span className="ide-welcome-folder-emoji">📂</span>
                                     </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#73c991' }}>{pages.length}</div>
-                                        <div>Files</div>
-                                    </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: '24px', fontWeight: 700, color: '#e2b93d' }}>{pages.reduce((sum, p) => sum + p.totalLines, 0).toLocaleString()}</div>
-                                        <div>Total LOC</div>
+                                    <h2>Agentic Prompt DB</h2>
+                                    <p>Select a file from the explorer to view its prompts and sections.</p>
+                                    <div className="ide-welcome-stats-card">
+                                        <div className="ide-welcome-stat">
+                                            <div className="ide-welcome-stat-value" style={{ color: '#5b7fff' }}>{Object.keys(groupedPages).length}</div>
+                                            <div className="ide-welcome-stat-label">FOLDERS</div>
+                                        </div>
+                                        <div className="ide-welcome-stat">
+                                            <div className="ide-welcome-stat-value" style={{ color: '#5b7fff' }}>{pages.length}</div>
+                                            <div className="ide-welcome-stat-label">FILES</div>
+                                        </div>
+                                        <div className="ide-welcome-stat">
+                                            <div className="ide-welcome-stat-value" style={{ color: '#e2793d' }}>{pages.reduce((sum, p) => sum + p.totalLines, 0).toLocaleString()}</div>
+                                            <div className="ide-welcome-stat-label">TOTAL LOC</div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
+
+                    {/* Status Bar */}
+                    <div className="ide-status-bar">
+                        <div className="ide-status-left">
+                            <span className="ide-status-connected">
+                                <span className="ide-status-dot-green"></span>
+                                Connected
+                            </span>
+                            <span className="ide-status-branch">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6a2.5 2.5 0 01-2.5 2.5H7.5v2.128a2.251 2.251 0 11-1.5 0V5.372a2.25 2.25 0 111.5 0v1.836A4 4 0 009.5 7h.5a1 1 0 001-1v-.628A2.25 2.25 0 019.5 3.25zM4.25 3a.75.75 0 100 1.5.75.75 0 000-1.5zM4.25 12a.75.75 0 100 1.5.75.75 0 000-1.5z" />
+                                </svg>
+                                master*
+                            </span>
+                        </div>
+                        <div className="ide-status-right">
+                            {selectedPage && (
+                                <span className="ide-status-info">Ln {selectedPage.totalLines}, Col 42</span>
+                            )}
+                            <span className="ide-status-info">UTF-8</span>
+                            <span className="ide-status-info">JavaScript</span>
+                            <svg className="ide-status-bell" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                <path d="M13.73 21a2 2 0 01-3.46 0" />
+                            </svg>
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     )
 }
-
