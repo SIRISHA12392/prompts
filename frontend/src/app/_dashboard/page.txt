@@ -1,0 +1,338 @@
+================================================================================
+              GENERATED PROMPT (page.tsx)
+================================================================================
+Generated: 2026-03-05T06:42:41.074Z
+NLP Template: nlp/v1
+Developer Template: developer/v1
+
+================================================================================
+SECTION 1: NLP (USER-DEFINED) - Context & Behavior
+================================================================================
+
+### Frontend
+
+**File Explorer**
+
+* What users see and interact with: A file explorer with a tree view of folders and files, allowing users to navigate and select files.
+* How the interface responds to user actions: The interface responds to user actions such as clicking on folders and files, expanding and collapsing nodes, and selecting files.
+* What happens automatically in the background: The interface automatically updates the file list when the user navigates to a new folder or file.
+* Any time-based features (timers, countdowns, auto-submit): None.
+* Any restrictions or protective measures: None.
+* Warnings, alerts, or visual indicators: None.
+* Auto-save or real-time updates (if present): None.
+
+**File Detail View**
+
+* What users see and interact with: A detailed view of a selected file, displaying its content and metadata.
+* How the interface responds to user actions: The interface responds to user actions such as scrolling, searching, and editing the file content.
+* What happens automatically in the background: The interface automatically updates the file content when the user makes changes.
+* Any time-based features (timers, countdowns, auto-submit): None.
+* Any restrictions or protective measures: None.
+* Warnings, alerts, or visual indicators: None.
+* Auto-save or real-time updates (if present): The interface automatically saves changes to the file.
+
+**Search Bar**
+
+* What users see and interact with: A search bar that allows users to search for files and folders.
+* How the interface responds to user actions: The interface responds to user actions such as typing in the search bar and pressing enter.
+* What happens automatically in the background: The interface automatically updates the file list when the user searches for files and folders.
+* Any time-based features (timers, countdowns, auto-submit): None.
+* Any restrictions or protective measures: None.
+* Warnings, alerts, or visual indicators: None.
+* Auto-save or real-time updates (if present): None.
+
+**Status Bar**
+
+* What users see and interact with: A status bar that displays information about the application and its state.
+* How the interface responds to user actions: The interface responds to user actions such as clicking on the status bar.
+* What happens automatically in the background: The interface automatically updates the status bar with new information.
+* Any time-based features (timers, countdowns, auto-submit): None.
+* Any restrictions or protective measures: None.
+* Warnings, alerts, or visual indicators: None.
+* Auto-save or real-time updates (if present): None.
+
+### Backend
+
+**Data Fetching**
+
+* What the system processes behind the scenes: The system fetches data from the server and updates the application state.
+* How information is verified or validated: The system verifies and validates the data received from the server.
+* Security protections or monitoring: The system has security protections and monitoring in place to prevent unauthorized access and data breaches.
+* How suspicious or invalid behavior is handled: The system handles suspicious or invalid behavior by alerting the user and preventing further actions.
+* How the system ensures fairness or accuracy: The system ensures fairness and accuracy by using algorithms and data validation.
+* How sessions or time are controlled: The system controls sessions and time using cookies and server-side logic.
+* What happens during submission or completion: The system updates the application state and displays a success message.
+
+**Data Storage**
+
+* What the system processes behind the scenes: The system stores data in a database and updates the application state.
+* How information is verified or validated: The system verifies and validates the data before storing it in the database.
+* Security protections or monitoring: The system has security protections and monitoring in place to prevent unauthorized access and data breaches.
+* How suspicious or invalid behavior is handled: The system handles suspicious or invalid behavior by alerting the user and preventing further actions.
+* How the system ensures fairness or accuracy: The system ensures fairness and accuracy by using algorithms and data validation.
+* How sessions or time are controlled: The system controls sessions and time using cookies and server-side logic.
+* What happens during submission or completion: The system updates the application state and displays a success message.
+
+### Database
+
+**File Metadata**
+
+* What information is stored: The system stores file metadata such as file name, file path, and file type.
+* How different records are connected: The system connects file metadata records using file paths and file names.
+* When data is created or updated: The system creates or updates file metadata records when a user creates or updates a file.
+* How logs or activity history are maintained: The system maintains logs and activity history using server-side logging and database queries.
+* How the system keeps data consistent and reliable: The system keeps data consistent and reliable by using data validation and error handling.
+
+**File Content**
+
+* What information is stored: The system stores file content such as text, images, and other media.
+* How different records are connected: The system connects file content records using file paths and file names.
+* When data is created or updated: The system creates or updates file content records when a user creates or updates a file.
+* How logs or activity history are maintained: The system maintains logs and activity history using server-side logging and database queries.
+* How the system keeps data consistent and reliable: The system keeps data consistent and reliable by using data validation and error handling.
+
+**Search Index**
+
+* What information is stored: The system stores a search index of file metadata and content.
+* How different records are connected: The system connects search index records using file paths and file names.
+* When data is created or updated: The system creates or updates search index records when a user creates or updates a file.
+* How logs or activity history are maintained: The system maintains logs and activity history using server-side logging and database queries.
+* How the system keeps data consistent and reliable: The system keeps data consistent and reliable by using data validation and error handling.
+
+================================================================================
+SECTION 2: DEVELOPER PROMPTS - Technical & Precise
+================================================================================
+
+### FRONTEND:
+
+-------------
+
+
+FILE METADATA:
+
+  Path: /src/pages/Home.js
+  Language: JavaScript
+  Framework (if identifiable): Next.js
+  Component/Module Type: React functional component
+  Exports/Public Interfaces: None
+
+
+IMPORTS / DEPENDENCIES:
+
+  - Internal Modules:
+    - useState
+    - useEffect
+    - useCallback
+    - useRef
+    - useRouter
+    - apiRequest
+    - getAccessToken
+    - clearAuthData
+  - External Libraries:
+    - React
+    - Next.js
+
+
+STRUCTURE:
+
+  - Component/Class/Function Name: Home
+  - Props/Inputs: None
+  - State Variables (with inferred types):
+    - pages: Page[]
+    - masterPrompts: MasterPrompt[]
+    - loading: boolean
+    - error: string | null
+    - seeding: boolean
+    - expandedNodes: Set<string>
+    - searchQuery: string
+    - generatingFile: string | null
+    - selectedPageId: string | null
+    - openTabs: string[]
+    - syncStatus: { inSync: boolean; message: string; totalChanges: number; details?: { newFiles: string[]; removedFiles: string[]; modifiedFiles: string[] } } | null
+    - syncBannerDismissed: boolean
+    - isFullscreen: boolean
+  - Derived State: None
+  - Context Usage: None
+  - Refs (if present): None
+
+
+CORE MECHANISMS:
+
+1. Fetch Data:
+   - Trigger: useEffect hook
+   - Execution Flow: Makes API request to fetch data
+   - Conditional Logic: None
+   - Payload Structure: None
+   - External Calls: apiRequest function
+   - Timing Logic (if any): None
+   - Constraints: None
+
+2. Check Sync Status:
+   - Trigger: useEffect hook
+   - Execution Flow: Makes API request to check sync status
+   - Side Effects: None
+   - Conditional Logic: None
+   - Payload Structure: None
+   - External Calls: apiRequest function
+   - Timing Logic (if any): None
+   - Constraints: None
+
+EVENT HANDLERS:
+
+  - Event: None
+  - Bound Function: None
+  - State Impact: None
+  - Side Effects: None
+
+API INTERACTIONS:
+
+  - Endpoint: /api/pages
+  - Method: GET
+  - Request Body Shape: None
+  - Response Shape: { pages: Page[], masterPrompts: MasterPrompt[] }
+  - Error Handling: None
+
+STATE MODEL:
+
+  - Variable Name: Type
+    - pages: Page[]
+    - masterPrompts: MasterPrompt[]
+    - loading: boolean
+    - error: string | null
+    - seeding: boolean
+    - expandedNodes: Set<string>
+    - searchQuery: string
+    - generatingFile: string | null
+    - selectedPageId: string | null
+    - openTabs: string[]
+    - syncStatus: { inSync: boolean; message: string; totalChanges: number; details?: { newFiles: string[]; removedFiles: string[]; modifiedFiles: string[] } } | null
+    - syncBannerDismissed: boolean
+    - isFullscreen: boolean
+  - Mutation Points: None
+  - Lifecycle Dependencies: None
+
+EDGE CASE HANDLING:
+
+  - Validation Rules: None
+  - Submission Restrictions: None
+  - Auto-trigger Conditions: None
+
+
+### BACKEND:
+
+------------
+
+
+FILE METADATA:
+
+  Path: /api/pages
+  Language: JavaScript
+  Framework (if identifiable): None
+  Controller/Router Type: Express.js
+  Exports/Public Interfaces: None
+
+
+ENDPOINTS:
+
+1. /api/pages
+   - Input Parameters: None
+   - Validation Rules: None
+   - Authentication Requirement: None
+   - Authorization Rules: None
+   - Processing Steps (ordered):
+     1. Make API request to fetch data
+     2. Return data in response
+   - Database Interaction: None
+   - External Service Calls: None
+   - Response Format: JSON
+   - Status Codes: 200 OK
+
+
+BUSINESS RULES:
+
+  - Rule Name: None
+  - Enforcement Location: None
+  - Failure Response: None
+
+
+DATA PROCESSING:
+
+  - Filtering Logic: None
+  - Field Exclusions: None
+  - Transformation Steps: None
+
+
+SECURITY CONTROLS:
+
+  - Sensitive Field Protection: None
+  - Input Sanitization: None
+  - Integrity Checks: None
+  - Rate Limiting (if present): None
+
+
+ASYNC / BACKGROUND TASKS:
+
+  - Trigger Condition: None
+  - Execution Flow: None
+  - Side Effects: None
+
+
+### DATABASE:
+
+-------------
+
+
+PERSISTENCE TYPE: SQL
+
+
+MODELS / TABLES:
+
+Entity Name: pages
+  - Fields:
+    - id: string
+    - filePath: string
+    - componentName: string
+    - totalLines: number
+    - purpose: string
+    - rawContent: string | null
+    - promptFilePath: string | null
+    - sections: Section[]
+    - stateVars: StateVar[]
+    - functions: PageFunc[]
+  - Primary Key: id
+  - Foreign Keys: None
+  - Default Values: None
+  - Indexes: None
+
+
+RELATIONSHIPS:
+
+  - One-to-One: None
+  - One-to-Many: None
+  - Many-to-Many: None
+
+
+TRANSACTION LOGIC:
+
+  - Atomic Operations: None
+  - Upsert Rules: None
+  - Cascade Behavior: None
+
+
+DATA INTEGRITY RULES:
+
+  - Unique Constraints: None
+  - Required Fields: None
+  - Enum Restrictions: None
+  - Soft Delete (if present): None
+
+
+STORAGE / EXTERNAL DATA SERVICES:
+
+  - Service Name: None
+  - Purpose: None
+  - Integration Type: None
+
+================================================================================
+                              END OF PROMPT
+================================================================================

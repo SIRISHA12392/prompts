@@ -1,7 +1,7 @@
 ================================================================================
-              GENERATED PROMPT (chat.js)
+              GENERATED PROMPT (code.js)
 ================================================================================
-Generated: 2026-03-03T11:21:28.497Z
+Generated: 2026-03-05T06:18:57.810Z
 NLP Template: nlp/v1
 Developer Template: developer/v1
 
@@ -11,63 +11,58 @@ SECTION 1: NLP (USER-DEFINED) - Context & Behavior
 
 ### Frontend
 
-**Streaming Chat Interface**
-- What it does: Allows users to send messages to a chat interface, which streams the response from a Large Language Model (LLM) in real-time.
-- When it happens: When a user sends a message, the interface sends a request to the server, which then streams the response from the LLM.
-- Why it matters: The streaming interface provides a dynamic and interactive way for users to engage with the chat system.
-- add a logout button on the top right corner of the chat which is to be in the red color don't add any functionalities just create the user interface.
+**Source Code Viewer**
 
+- What it does: Displays the source code for a specific page.
+- When it happens: When a GET request is made to the `/api/code/:id` endpoint.
+- Why it matters: Allows users to view the source code for a page.
 
-**Non-Streaming Chat Interface (Fallback)**
-- What it does: Provides a non-streaming chat interface that sends a single request to the server and receives a response from the LLM.
-- When it happens: When the user clicks the "Sync" button, the interface sends a single request to the server, which then returns a response from the LLM.
-- Why it matters: The non-streaming interface provides a fallback option for users who may not have a stable internet connection or prefer a more traditional chat experience.
+**Source Code Editor**
 
-**Auto-Response**
-- What it does: The system automatically responds to user input with a response from the LLM.
-- When it happens: When the user sends a message, the system sends a request to the server, which then streams the response from the LLM.
-- Why it matters: The auto-response feature provides an interactive and engaging experience for users.
+- What it does: Allows users to edit the source code for a specific page.
+- When it happens: When a POST request is made to the `/api/code/:id` endpoint.
+- Why it matters: Enables users to update the source code for a page.
 
 **Error Handling**
-- What it does: The system handles errors that may occur during the chat process, such as network errors or API errors.
-- When it happens: When an error occurs, the system displays an error message to the user and logs the error for debugging purposes.
-- Why it matters: Error handling ensures that the system provides a reliable and stable experience for users.
 
-**Restrictions and Protective Measures**
-- What it does: The system has restrictions and protective measures in place to prevent abuse and ensure a safe experience for users.
-- When it happens: These measures are enforced at the server level, and users who attempt to abuse the system may be blocked or restricted.
-- Why it matters: Restrictions and protective measures help to maintain the integrity and security of the system.
+- What it does: Handles errors that occur during source code retrieval or saving.
+- When it happens: When an error occurs during the GET or POST request.
+- Why it matters: Provides feedback to users when something goes wrong.
 
 ### Backend
 
-**InfinitAI Configuration**
-- What it handles: The system retrieves configuration settings from environment variables, such as the InfinitAI API key and base URL.
-- How it protects or validates: The system checks for the presence of required configuration settings and throws an error if they are missing.
-- What happens if conditions are not met: If the configuration settings are missing, the system throws an error and prevents the chat process from proceeding.
+**Source Code Retrieval**
 
-**Chat Request Processing**
-- What it handles: The system processes chat requests from users, including sending requests to the LLM and streaming responses back to the user.
-- How it protects or validates: The system checks for valid chat requests and throws an error if the request is invalid.
-- What happens if conditions are not met: If the chat request is invalid, the system throws an error and prevents the chat process from proceeding.
+- What it handles: Retrieving source code for a specific page.
+- How it protects or validates: Verifies the existence of the page and its source code file.
+- What happens if conditions are not met: Returns a 404 error if the page or source code file is not found.
 
-**LLM Request and Response Handling**
-- What it handles: The system sends requests to the LLM and handles responses from the LLM.
-- How it protects or validates: The system checks for valid responses from the LLM and throws an error if the response is invalid.
-- What happens if conditions are not met: If the response from the LLM is invalid, the system throws an error and prevents the chat process from proceeding.
+**Source Code Saving**
+
+- What it handles: Saving updated source code for a specific page.
+- How it protects or validates: Verifies the existence of the page and its source code file, and checks for missing source code in the request body.
+- What happens if conditions are not met: Returns a 404 error if the page or source code file is not found, or a 400 error if the source code is missing.
 
 ### Database
 
-**No Database Information**
-- The provided source code does not include any database-related information, so there is no data to describe.
+**Page Information**
+
+- What is stored: Page ID, file path, component name, and total lines of code.
+- When it is updated: When the source code is saved.
+- Why it is important: Provides metadata about the page and its source code.
+
+**Source Code Files**
+
+- What is stored: The actual source code files.
+- When it is updated: When the source code is saved.
+- Why it is important: Stores the source code for each page.
 
 ================================================================================
-
 SECTION 2: DEVELOPER PROMPTS - Technical & Precise
 ================================================================================
 
 ### FRONTEND:
-----------------------------------------------------
-
+-------------
 FILE METADATA:
   Path: Not Explicitly Defined in Provided Code
   Language: Not Explicitly Defined in Provided Code
@@ -76,8 +71,13 @@ FILE METADATA:
   Exports/Public Interfaces: Not Explicitly Defined in Provided Code
 
 IMPORTS / DEPENDENCIES:
-  - Internal Modules: express
-  - External Libraries: Not Explicitly Defined in Provided Code
+  - Internal Modules:
+    - express
+    - fs
+    - path
+    - prisma
+  - External Libraries:
+    - Not Explicitly Defined in Provided Code
 
 STRUCTURE:
   - Component/Class/Function Name: Not Explicitly Defined in Provided Code
@@ -117,8 +117,7 @@ API INTERACTIONS:
 
 STATE MODEL:
   - Variable Name: Type
-  - Mutation Points: Not Explicitly Defined in Provided Code
-  - Lifecycle Dependencies: Not Explicitly Defined in Provided Code
+    - Not Explicitly Defined in Provided Code
 
 EDGE CASE HANDLING:
   - Validation Rules: Not Explicitly Defined in Provided Code
@@ -128,43 +127,43 @@ EDGE CASE HANDLING:
 ----------------------------------------------------
 
 ### BACKEND:
-----------------------------------------------------
+------------
 
 FILE METADATA:
   Path: Not Explicitly Defined in Provided Code
-  Language: JavaScript
-  Framework (if identifiable): Express.js
+  Language: Not Explicitly Defined in Provided Code
+  Framework (if identifiable): Not Explicitly Defined in Provided Code
   Controller/Router Type: Express Router
 
 ENDPOINTS:
-1. POST /api/chat
-   - Input Parameters: { messages: [{ role, content }], model? }
-   - Validation Rules: messages array is required and must not be empty
+1. METHOD /api/code/:id
+   - Input Parameters: id
+   - Validation Rules: id is required
    - Authentication Requirement: Not Explicitly Defined in Provided Code
    - Authorization Rules: Not Explicitly Defined in Provided Code
    - Processing Steps (ordered):
-     1. Get InfinitAI configuration from environment
-     2. Set up SSE headers
-     3. Send request to InfinitAI API
-     4. Stream response
-   - Database Interaction: Not Explicitly Defined in Provided Code
-   - External Service Calls: InfinitAI API
-   - Response Format: Server-Sent Events stream
-   - Status Codes: 200, 400, 500
-
-2. POST /api/chat/sync
-   - Input Parameters: { messages: [{ role, content }], model? }
-   - Validation Rules: messages array is required and must not be empty
-   - Authentication Requirement: Not Explicitly Defined in Provided Code
-   - Authorization Rules: Not Explicitly Defined in Provided Code
-   - Processing Steps (ordered):
-     1. Get InfinitAI configuration from environment
-     2. Send request to InfinitAI API
-     3. Return response
-   - Database Interaction: Not Explicitly Defined in Provided Code
-   - External Service Calls: InfinitAI API
+     1. Find page by id
+     2. Read source code from file
+     3. Return source code
+   - Database Interaction: prisma.page.findUnique
+   - External Service Calls: Not Explicitly Defined in Provided Code
    - Response Format: JSON
-   - Status Codes: 200, 400, 500
+   - Status Codes: 200, 404, 500
+
+2. METHOD /api/code/:id
+   - Input Parameters: id, sourceCode
+   - Validation Rules: sourceCode is required
+   - Authentication Requirement: Not Explicitly Defined in Provided Code
+   - Authorization Rules: Not Explicitly Defined in Provided Code
+   - Processing Steps (ordered):
+     1. Find page by id
+     2. Write source code to file
+     3. Update totalLines in database
+     4. Return success message
+   - Database Interaction: prisma.page.findUnique, prisma.page.update
+   - External Service Calls: Not Explicitly Defined in Provided Code
+   - Response Format: JSON
+   - Status Codes: 200, 404, 500
 
 BUSINESS RULES:
   - Rule Name: Not Explicitly Defined in Provided Code
@@ -190,17 +189,18 @@ ASYNC / BACKGROUND TASKS:
 ----------------------------------------------------
 
 ### DATABASE:
-----------------------------------------------------
+-------------
 
-PERSISTENCE TYPE: Not Explicitly Defined in Provided Code
+PERSISTENCE TYPE: Prisma ORM
 
 MODELS / TABLES:
-Entity Name: Not Explicitly Defined in Provided Code
+Entity Name: page
   - Fields:
-    - Name: Not Explicitly Defined in Provided Code
-    - Type: Not Explicitly Defined in Provided Code
-    - Constraints: Not Explicitly Defined in Provided Code
-  - Primary Key: Not Explicitly Defined in Provided Code
+    - id: Type
+    - filePath: Type
+    - componentName: Type
+    - totalLines: Type
+  - Primary Key: id
   - Foreign Keys: Not Explicitly Defined in Provided Code
   - Default Values: Not Explicitly Defined in Provided Code
   - Indexes: Not Explicitly Defined in Provided Code
